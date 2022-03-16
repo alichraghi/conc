@@ -107,7 +107,13 @@ pub const Color4 = enum(u7) {
     bright_white = 97,
 };
 
+//
 // Cursor
+//
+
+pub fn cursorPosZero(writer: anytype) !void {
+    try writer.writeAll(CSI ++ "H");
+}
 
 pub fn setCursorPos(writer: anytype, row: usize, col: usize) !void {
     try writer.print(CSI ++ "{d};{d}H", .{ row + 1, col + 1 });
@@ -119,10 +125,6 @@ pub fn setCursorRow(writer: anytype, row: usize) !void {
 
 pub fn setCursorColumn(writer: anytype, column: usize) !void {
     try writer.print(CSI ++ "{d}G", .{column + 1});
-}
-
-pub fn cursorPosZero(writer: anytype) !void {
-    try writer.writeAll(CSI ++ "H");
 }
 
 pub fn cursorUp(writer: anytype, lines: u16) !void {
@@ -165,11 +167,14 @@ pub fn hideCursor(writer: anytype) !void {
     try writer.writeAll(CSI ++ "?25l");
 }
 
+/// after calling this, terminal reports the cursor position (CPR) by transmitting `ESC[<Row>;<Column>R`
 pub fn requestCursorPos(writer: anytype) !void {
     try writer.writeAll(CSI ++ "6n");
 }
 
+//
 // Clear
+//
 
 pub fn clearScreen(writer: anytype) !void {
     try cursorPosZero(writer);
@@ -180,6 +185,7 @@ pub fn clearLine(writer: anytype) !void {
     try writer.writeAll(CSI ++ "2K");
 }
 
+/// clear from cursor to to specified position
 pub fn clearUntil(writer: anytype, until: Until) !void {
     try cursorPosZero();
     try writer.print(CSI ++ "{s}", .{switch (until) {
@@ -190,7 +196,9 @@ pub fn clearUntil(writer: anytype, until: Until) !void {
     }});
 }
 
+//
 // Screen
+//
 
 pub fn saveScreen(writer: anytype) !void {
     try writer.writeAll(CSI ++ "?47h");
@@ -208,63 +216,83 @@ pub fn disableAltBuffer(writer: anytype) !void {
     try writer.writeAll(CSI ++ "?1049l");
 }
 
+/// scroll whole page up by `lines`. new lines are added at the bottom
 pub fn scrollUp(writer: anytype, lines: usize) !void {
     try writer.print(CSI ++ "{d}S", .{lines});
 }
 
+/// scroll whole page down by `lines`. new lines are added at the bottom
 pub fn scrollDown(writer: anytype, lines: usize) !void {
     try writer.print(CSI ++ "{d}T", .{lines});
 }
 
+//
 // Color, Graphic, etc
+//
 
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 pub fn sgr(writer: anytype, mode: GraphicRendition) !void {
     try writer.print(CSI ++ "{d}m", .{@enumToInt(mode)});
 }
 
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit
 pub fn fgColor4(writer: anytype, mode: Color4) !void {
     try writer.print(CSI ++ "{d}m", .{@enumToInt(mode)});
 }
 
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit
 pub fn bgColor4(writer: anytype, mode: Color4) !void {
     try writer.print(CSI ++ "{d}m", .{@enumToInt(mode) + 10});
 }
 
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
 pub fn fgColor8(writer: anytype, code: u8) !void {
     try writer.print(CSI ++ "38;5;{d}m", .{code});
 }
 
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
 pub fn bgColor8(writer: anytype, code: u8) !void {
     try writer.print(CSI ++ "48;5;{d}m", .{code});
 }
 
+/// rarely implemented (Kitty, iTerm2, VTE, etc)
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
 pub fn underlineColor8(writer: anytype, code: u8) !void {
     try writer.print(CSI ++ "58;5;{d}m", .{code});
 }
 
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit
 pub fn fgColorRGB(writer: anytype, r: u8, g: u8, b: u8) !void {
     try writer.print(CSI ++ "38;2;{d};{d};{d}m", .{ r, g, b });
 }
 
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit
 pub fn bgColorRGB(writer: anytype, r: u8, g: u8, b: u8) !void {
     try writer.print(CSI ++ "48;2;{d};{d};{d}m", .{ r, g, b });
 }
 
+/// rarely implemented (Kitty, iTerm2, VTE, etc)
+/// https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit
 pub fn underlineColorRGB(writer: anytype, r: u8, g: u8, b: u8) !void {
     try writer.print(CSI ++ "58;2;{d};{d};{d}m", .{ r, g, b });
 }
 
+/// reset all SGR attributes off
 pub fn resetSGR(writer: anytype) !void {
     try writer.writeAll(CSI ++ "0m");
 }
 
+//
 // Other
+//
 
-pub fn bracketedPasteModeOn(writer: anytype) !void {
+/// in bracketed paste mode and you paste into your terminal the content will be wrapped by the sequences `ESC[200~` and `ESC[201~`.
+/// https://cirw.in/blog/bracketed-paste
+pub fn enableBracketedPasteMode(writer: anytype) !void {
     try writer.writeAll(CSI ++ "?2004h");
 }
 
-pub fn bracketedPasteModeOff(writer: anytype) !void {
+pub fn disableBracketedPasteMode(writer: anytype) !void {
     try writer.writeAll(CSI ++ "?2004l");
 }
 
@@ -276,7 +304,9 @@ pub fn resetAll(writer: anytype) !void {
     try writer.writeAll(ESC ++ "c");
 }
 
+//
 // Tests
+//
 
 test {
     const stderr = std.io.getStdErr().writer();
