@@ -1,0 +1,6 @@
+id: qllagilhx04ieb8q68oqzydkbxsy91m5g0dei0tr9zj0lqf0
+name: conc
+main: conc.zig
+license: MIT
+description: A ansi terminal library that supports most implemented standards
+dependencies:
