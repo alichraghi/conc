@@ -1,6 +1,6 @@
 # conc
 
-A ansi terminal that supports most implemented standards
+A ansi terminal that supports most implemented standards2
 
 ## Installation
 
